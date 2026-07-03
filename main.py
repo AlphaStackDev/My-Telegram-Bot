@@ -16,10 +16,12 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-# Initialize DB pool at app startup (not lazily on first request)
-with app.app_context():
-    asyncio.run(init_db())
-
+@app.before_request
+def setup():
+    if not hasattr(setup, "initialized"):
+        with app.app_context():
+            asyncio.run(init_db())
+        setup.initialized = True
 
 
 # Route for Alpha Bot
