@@ -27,18 +27,46 @@ def setup():
 # Route for Alpha Bot
 @app.route("/webhook_alpha", methods=["POST"])
 def alpha_webhook():
-    # TODO: Call Alpha_PBot webhook handler here
-    # For now, just acknowledge.
-    _ = request.get_json(silent=True)
+    # Forward Telegram update JSON to Alpha_PBot (aiogram webhook-driven).
+    payload = request.get_json(force=True, silent=True) or {}
+
+    # Convert raw JSON -> aiogram Update
+    try:
+        from Alpha_PBot import bot, dp
+        from aiogram.types import Update
+
+        update = Update.model_validate(payload)
+    except Exception:
+        # If Telegram sends unexpected payload, respond ok to avoid retries.
+        return "ok", 200
+
+    async def _handle():
+        await dp.feed_update(bot, update)
+
+    asyncio.run(_handle())
     return "ok", 200
+
 
 
 # Route for Admin Bot
 @app.route("/webhook_admin", methods=["POST"])
 def admin_webhook():
-    # TODO: Call Admin_Bot webhook handler here
-    _ = request.get_json(silent=True)
+    payload = request.get_json(force=True, silent=True) or {}
+
+    try:
+        from Admin_Bot import bot, dp
+        from aiogram.types import Update
+
+        update = Update.model_validate(payload)
+    except Exception:
+        return "ok", 200
+
+    async def _handle():
+        await dp.feed_update(bot, update)
+
+    asyncio.run(_handle())
     return "ok", 200
+
 
 
 if __name__ == "__main__":

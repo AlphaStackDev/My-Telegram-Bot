@@ -54,6 +54,7 @@ async def is_admin(user_id: int) -> bool:
 # =====================
 # We will not use AiohttpSession for now to avoid the compatibility crash.
 # We will use the standard Bot initialization.
+BOT_TOKEN = ALPHA_TOKEN
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
