@@ -16,16 +16,10 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-@app.before_first_request
-def ensure_db_initialized():
-    """Initialize async DB pool once, before the first HTTP request."""
-    try:
-        asyncio.run(init_db())
-        logging.info("Database connection pool created successfully.")
-    except Exception as e:
-        logging.exception("Failed to initialize database")
-        # Let Flask surface the error to the caller.
-        raise
+# Initialize DB pool at app startup (not lazily on first request)
+with app.app_context():
+    asyncio.run(init_db())
+
 
 
 # Route for Alpha Bot
