@@ -139,14 +139,9 @@ async def decline_callback(call: types.CallbackQuery):
     await call.message.edit_text(f"❌ Declined: {student_id}")
     await call.answer("Declined!")
 
-async def main() -> None:
-    await set_commands(bot)
-    print("Admin Bot is running...")
-    await dp.start_polling(bot, drop_pending_updates=True)
-
-
 async def run_admin_bot() -> None:
-    await main()
+    await set_commands(bot)
+    raise RuntimeError("Admin_Bot is webhook-driven; call its webhook route via Flask in main.py.")
 
 
 if __name__ == "__main__":

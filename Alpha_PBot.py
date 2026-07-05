@@ -1,5 +1,4 @@
 import asyncio
-import asyncpg
 import os
 import aiohttp
 import re
@@ -19,7 +18,7 @@ from dotenv import load_dotenv
 from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from database import db_execute, db_fetch_one # Ensure your db module is imported
+from database import db_execute, db_fetch_all, db_fetch_one
 
 # =====================
 # CONFIG (EDIT THESE)
@@ -61,59 +60,7 @@ dp = Dispatcher()
 # =====================
 # DB helpers
 # =====================
-
-async def pg_query(query: str, params: tuple = ()):
-    """Small helper around asyncpg that uses DB_CONFIG['database'] (not 'db')."""
-    conn = await asyncpg.connect(
-        user=DB_CONFIG["user"],
-        password=DB_CONFIG["password"],
-        database=DB_CONFIG["database"],
-        host=DB_CONFIG["host"],
-    )
-    try:
-        return await conn.execute(query, *params)
-    finally:
-        await conn.close()
-
-async def db_fetch_one(query: str, params: tuple):
-    conn = await asyncpg.connect(
-        host=DB_CONFIG["host"],
-        user=DB_CONFIG["user"],
-        password=DB_CONFIG["password"],
-        database=DB_CONFIG["database"]
-    )
-    try:
-        row = await conn.fetchrow(query, *params)
-        return dict(row) if row else None
-    finally:
-        await conn.close()
-
-async def db_fetch_all(query: str, params: tuple):
-    conn = await asyncpg.connect(
-        user=DB_CONFIG["user"],
-        password=DB_CONFIG["password"],
-        database=DB_CONFIG["database"],
-        host=DB_CONFIG["host"],
-    )
-    try:
-        rows = await conn.fetch(query, *params)
-        return [dict(r) for r in rows]
-    finally:
-        await conn.close()
-
-
-async def db_execute(query: str, params: tuple):
-    conn = await asyncpg.connect(
-        user=DB_CONFIG["user"],
-        password=DB_CONFIG["password"],
-        database=DB_CONFIG["database"],
-        host=DB_CONFIG["host"],
-    )
-    try:
-        await conn.execute(query, *params)
-    finally:
-        await conn.close()
-
+# Use the shared pool from database.py so this bot works in Render/webhook mode.
 
 # =====================
 # Registration FSM
@@ -906,32 +853,16 @@ async def add_course(message: types.Message):
 
 
 # =====================
-# Polling main loop (disabled in webhook-only Render deployment)
-# =====================
-async def main():
-    # Keep for local testing, but do NOT call under Render webhook mode.
-    while True:
-        try:
-            await bot.delete_webhook(drop_pending_updates=True)
-            print("Starting bot polling (with reset)...")
-            await dp.start_polling(bot, drop_pending_updates=True, handle_signals=False)
-
-        except Exception as e:
-            print(f"Connection dropped: {e}. Retrying in 5 seconds...")
-            await asyncio.sleep(5) # Wait 5 seconds before trying again
-
-
-# =====================
 # Flask webhook (Render-friendly)
 # =====================
 # Webhook-only mode: Flask receives Telegram updates and aiogram processes them.
-# NOTE: Telegram webhook URL path must match `/webhook` below.
+# NOTE: Telegram webhook URL path must match the route used by main.py.
 from flask import Flask, request
 
 flask_app = Flask(__name__)
 
 
-@flask_app.route('/webhook', methods=['POST'])
+@flask_app.route('/webhook_alpha', methods=['POST'])
 def webhook():
     payload = request.get_json(force=True, silent=True) or {}
 
