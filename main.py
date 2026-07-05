@@ -36,8 +36,8 @@ def alpha_webhook():
         from aiogram.types import Update
 
         update = Update.model_validate(payload)
-    except Exception:
-        # If Telegram sends unexpected payload, respond ok to avoid retries.
+    except Exception as exc:
+        logging.exception("Alpha webhook failed to parse/update payload: %s", exc)
         return "ok", 200
 
     async def _handle():
@@ -45,7 +45,6 @@ def alpha_webhook():
 
     asyncio.run(_handle())
     return "ok", 200
-
 
 
 # Route for Admin Bot
@@ -58,7 +57,8 @@ def admin_webhook():
         from aiogram.types import Update
 
         update = Update.model_validate(payload)
-    except Exception:
+    except Exception as exc:
+        logging.exception("Admin webhook failed to parse/update payload: %s", exc)
         return "ok", 200
 
     async def _handle():
@@ -66,7 +66,6 @@ def admin_webhook():
 
     asyncio.run(_handle())
     return "ok", 200
-
 
 
 if __name__ == "__main__":
