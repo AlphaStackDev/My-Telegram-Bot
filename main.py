@@ -1,3 +1,4 @@
+
 import os
 import asyncio
 import logging
@@ -16,6 +17,12 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
+@app.get("/")
+@app.get("/healthz")
+def health_check():
+    return "ok", 200
+
+
 @app.before_request
 def setup():
     if not getattr(setup, "initialized", False):
@@ -29,8 +36,10 @@ def setup():
 
 
 # Route for Alpha Bot
-@app.route("/webhook_alpha", methods=["POST"])
+@app.route("/webhook_alpha", methods=["GET", "POST"])
 def alpha_webhook():
+    if request.method == "GET":
+        return "ok", 200
     # Forward Telegram update JSON to Alpha_PBot (aiogram webhook-driven).
     payload = request.get_json(force=True, silent=True) or {}
 
@@ -60,8 +69,10 @@ def alpha_webhook():
 
 
 # Route for Admin Bot
-@app.route("/webhook_admin", methods=["POST"])
+@app.route("/webhook_admin", methods=["GET", "POST"])
 def admin_webhook():
+    if request.method == "GET":
+        return "ok", 200
     payload = request.get_json(force=True, silent=True) or {}
 
     try:
