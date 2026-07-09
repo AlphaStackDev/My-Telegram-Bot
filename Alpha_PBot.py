@@ -34,14 +34,14 @@ DB_CONFIG = {
 # ALPHA_TOKEN here...
 load_dotenv() # This reads the local .env file
 ALPHA_TOKEN = os.environ.get('ALPHA_BOT_TOKEN')
+if not ALPHA_TOKEN:
+    raise RuntimeError("Missing ALPHA_BOT_TOKEN")
 
 # Telegram user id (admin)
 ADMIN_TELEGRAM_ID = 8271633745
 # ID here
 ADMIN_ID = 8271633745
 
-if not ALPHA_TOKEN:
-    raise RuntimeError("Missing ALPHA_BOT_TOKEN env var. Set it in Render/your .env file.")
 
 
 # Where to store downloads temporarily (secure PDFs created on-the-fly)
@@ -60,6 +60,13 @@ async def is_admin(user_id: int) -> bool:
 BOT_TOKEN = ALPHA_TOKEN
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+
+
+# Called by webhook runner on startup (if wired in main.py)
+async def on_startup():
+    webhook_url = "https://your-render-app-name.onrender.com/webhook_alpha"
+    await bot.set_webhook(webhook_url)
+
 
 # =====================
 # DB helpers

@@ -13,15 +13,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 ADMIN_TOKEN = os.environ.get('ADMIN_BOT_TOKEN')
-# Use ADMIN_TOKEN here...
+if not ADMIN_TOKEN:
+    raise RuntimeError("Missing ADMIN_BOT_TOKEN")
+admin_bot = Bot(token=ADMIN_TOKEN)
+
 ADMIN_ID = 8271633745  # Your Telegram ID
 
-if not ADMIN_TOKEN:
-    raise RuntimeError("Missing ADMIN_BOT_TOKEN env var. Set it in Render/your .env file.")
-
-bot = Bot(token=ADMIN_TOKEN)
-
 dp = Dispatcher()
+
 
 async def set_commands(bot: Bot) -> None:
     commands = [
@@ -160,8 +159,9 @@ async def decline_callback(call: types.CallbackQuery):
     await call.answer("Declined!")
 
 async def run_admin_bot() -> None:
-    await set_commands(bot)
+    await set_commands(admin_bot)
     raise RuntimeError("Admin_Bot is webhook-driven; call its webhook route via Flask in main.py.")
+
 
 
 if __name__ == "__main__":

@@ -14,6 +14,8 @@ class DatabaseTests(unittest.TestCase):
             fake_pool = AsyncMock()
             fake_conn = AsyncMock()
             fake_pool.acquire.return_value.__aenter__.return_value = fake_conn
+            fake_pool.acquire.return_value.__aexit__.return_value = None
+
             fake_conn.fetchrow.return_value = {"telegram_id": 1}
 
             with patch("database.asyncpg.create_pool", new=AsyncMock(return_value=fake_pool)) as create_pool:
