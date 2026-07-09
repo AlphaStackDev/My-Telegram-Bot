@@ -40,6 +40,10 @@ ADMIN_TELEGRAM_ID = 8271633745
 # ID here
 ADMIN_ID = 8271633745
 
+if not ALPHA_TOKEN:
+    raise RuntimeError("Missing ALPHA_BOT_TOKEN env var. Set it in Render/your .env file.")
+
+
 # Where to store downloads temporarily (secure PDFs created on-the-fly)
 
 TMP_DIR = os.path.join(os.getcwd(), "tmp_secure")
@@ -158,7 +162,7 @@ async def fetch_pdf_to_file(source: str, dest_path: str) -> None:
         if local_path.lower().startswith("file:"):
             local_path = local_path[5:]
 
-        # decode common db/url-encoded artifacts (e.g. c:%5C%5C...) 
+        # decode common db/url-encoded artifacts (e.g. c:%5C%5C...)
         local_path = local_path.replace("%5C", "\\").replace("%3A", ":")
 
         # Normalize relative paths
@@ -173,12 +177,20 @@ async def fetch_pdf_to_file(source: str, dest_path: str) -> None:
 
     # Otherwise treat as URL
     timeout = aiohttp.ClientTimeout(total=120)
+    token = os.environ.get("GITHUB_TOKEN")
+    headers = {
+        "Accept": "application/vnd.github.v3.raw",
+    }
+    if token:
+        headers["Authorization"] = f"token {token}"
+    print(f"DEBUG: Attempting to download from URL: {source}")
     async with aiohttp.ClientSession(timeout=timeout) as session:
-        async with session.get(source) as resp:
+        async with session.get(source, headers=headers) as resp:
             resp.raise_for_status()
             with open(dest_path, "wb") as f:
                 async for chunk in resp.content.iter_chunked(1024 * 1024):
                     f.write(chunk)
+
 
 
 def secure_pdf(input_pdf_path: str, output_pdf_path: str, reg_number: str) -> None:
@@ -617,7 +629,6 @@ async def approve_student(message: types.Message):
     await message.answer(f"✅ Student {student_id} has been approved.")
     await bot.send_message(student_id, "🎉 Payment approved! You can now download your files.")
 
-
 @dp.callback_query(F.data.startswith("download:"))
 async def cb_download(call: types.CallbackQuery):
     _, cid = call.data.split(":", 1)
@@ -639,26 +650,25 @@ async def cb_download(call: types.CallbackQuery):
         await call.message.answer("Registration incomplete. Use /start.")
         return
 
-    course = await db_fetch_one("SELECT course_code, level FROM courses WHERE id = $1", (course_id,))
-    if not course:
-        await call.message.answer("Course not found.")
+    # Fetch course info AND the cloud URL from the database
+    course = await db_fetch_one("SELECT course_code, file_url FROM courses WHERE id = $1", (course_id,))
+    if not course or not course.get("file_url"):
+        await call.message.answer("Error: Course file not found in database.")
         return
 
-    # Path Setup
-    BASE_DIR = r"C:\Users\User\My_Telegram_Bot\My_PDFs\Economics 200 Level Q&P"
-    filename = f"{course['course_code'].strip()}.pdf"
-    raw_source = os.path.join(BASE_DIR, filename)
+    # Define paths in the system's temporary directory
     raw_path = os.path.join(TMP_DIR, f"raw_{telegram_id}_{course_id}.pdf")
     secure_path = os.path.join(TMP_DIR, f"secure_{telegram_id}_{course_id}.pdf")
 
-    if not os.path.exists(raw_source):
-        await call.message.answer("Error: File not found on server.")
-        return
-
-    status_msg = await call.message.answer("⏳ Preparing secure document...")
+    status_msg = await call.message.answer("⏳ Downloading and securing your document...")
+    
     try:
-        await fetch_pdf_to_file(raw_source, raw_path)
+        # Fetch directly from the GitHub URL stored in the database
+        await fetch_pdf_to_file(course["file_url"], raw_path)
+        
+        # Secure the file (assuming secure_pdf handles the local path correctly)
         secure_pdf(raw_path, secure_path, reg_number)
+        
         await call.message.answer_document(
             document=types.FSInputFile(secure_path),
             caption=f"✅ Secured for {reg_number}"
@@ -667,18 +677,12 @@ async def cb_download(call: types.CallbackQuery):
     except Exception as e:
         await call.message.answer(f"Failed to prepare document: {e}")
     finally:
+        # Cleanup temporary files
         for p in (raw_path, secure_path):
-            if os.path.exists(p): os.remove(p)
+            if os.path.exists(p): 
+                os.remove(p)
 
     return
-
-
-# =====================
-# Past questions by course_code (Q&P PDFs)
-# =====================
-
-PDF_BASE_DIR = r"C:\\Users\\User\\My_Telegram_Bot\\My_PDFs\\Economics 200 Level Q&P"
-
 
 async def get_level_keyboard(department_id: int):
     builder = InlineKeyboardBuilder()
@@ -857,39 +861,17 @@ async def add_course(message: types.Message):
 # =====================
 # Webhook-only mode: Flask receives Telegram updates and aiogram processes them.
 # NOTE: Telegram webhook URL path must match the route used by main.py.
-from flask import Flask, request
-
-flask_app = Flask(__name__)
-
-
-@flask_app.route('/webhook_alpha', methods=['POST'])
-def webhook():
-    payload = request.get_json(force=True, silent=True) or {}
-
-    # Convert raw JSON -> aiogram Update
-    try:
-        update = Update.model_validate(payload)
-    except Exception:
-        # If Telegram sends unexpected payload, respond ok to avoid retries.
-        return "ok", 200
-
-    # aiogram expects updates to be fed into its dispatcher
-    async def _handle():
-        await dp.feed_update(bot, update)
-
-    # Run the async handler and return quickly.
-    asyncio.run(_handle())
-    return "ok", 200
-
+# NOTE:
+# This module is ONLY the aiogram bot.
+# Webhook HTTP endpoints are hosted in `main.py`.
 
 async def run_alpha_bot() -> None:
-    # Kept for compatibility; Alpha bot is webhook-driven in this project.
-    # Importing this module should not start the server.
-    raise RuntimeError("Alpha_PBot is webhook-driven; call its webhook route via Flask in main.py.")
+    raise RuntimeError("Alpha_PBot is webhook-driven; do not run Flask from this module. Host webhooks via main.py.")
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", "5000"))
-    flask_app.run(host="0.0.0.0", port=port)
+    # Prevent accidental startup of an extra Flask app.
+    raise RuntimeError("Use main.py to run webhook server (not Alpha_PBot.py).")
+
 
 

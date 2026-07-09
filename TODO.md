@@ -1,10 +1,12 @@
 # TODO
 
-- [ ] (Confirmed) Keep `/webhook` in FastAPI (`webhook_server.py`).
-- [ ] Add Telegram webhook processing to FastAPI route `/webhook` (pass update into aiogram dispatcher).
-- [ ] Ensure Alpha bot webhook is handled by aiogram without starting polling.
-- [ ] Remove/avoid conflicting Flask webhook routes if needed.
-- [ ] Run `python -m py_compile webhook_server.py Alpha_PBot.py main.py Admin_Bot.py database.py`.
-- [ ] Test locally: POST a sample Telegram update to `/webhook` and verify `200 OK`.
+- [x] Replace `main.py` webhook server with the provided Flask version
+  - [x] Ensure `/webhook_alpha` route uses `async def` and `await dp.feed_update(bot, update)`
+  - [x] Ensure DB is initialized once at startup using `@app.before_first_request` + `asyncio.run(init_db())`
+  - [x] Ensure `/` health route returns `Bot is running`
+  - [x] Ensure `PORT` env var is respected in `__main__`
+- [ ] Run tests
+  - [x] `python -m unittest` (or pytest if configured)
+
 
 

@@ -16,7 +16,11 @@ ADMIN_TOKEN = os.environ.get('ADMIN_BOT_TOKEN')
 # Use ADMIN_TOKEN here...
 ADMIN_ID = 8271633745  # Your Telegram ID
 
+if not ADMIN_TOKEN:
+    raise RuntimeError("Missing ADMIN_BOT_TOKEN env var. Set it in Render/your .env file.")
+
 bot = Bot(token=ADMIN_TOKEN)
+
 dp = Dispatcher()
 
 async def set_commands(bot: Bot) -> None:
@@ -83,15 +87,31 @@ async def approve_student(message: types.Message):
 
 @dp.message(Command("check"))
 async def check_student(message: types.Message):
-    if message.from_user.id != ADMIN_ID: return
+    if message.from_user.id != ADMIN_ID:
+        return
     args = message.text.split(maxsplit=1)
-    if len(args) < 2: return
+    if len(args) < 2:
+        return
     student_id = int(args[1])
-    student = await db_fetch_one("SELECT has_paid FROM students WHERE telegram_id = $1", (student_id,))
-    if student:
-        status = "PAID" if student.get("has_paid") else "NOT PAID"
-        await message.answer(f"Status for {student_id}: {status}")
-    else: await message.answer("Student not found in database.")
+
+    student = await db_fetch_one(
+        "SELECT has_paid_sem1, has_paid_sem2, has_paid_all FROM students WHERE telegram_id = $1",
+        (student_id,),
+    )
+
+    if not student:
+        await message.answer("Student not found in database.")
+        return
+
+    if student.get("has_paid_all"):
+        status = "PAID (ALL)"
+    else:
+        sem1 = bool(student.get("has_paid_sem1"))
+        sem2 = bool(student.get("has_paid_sem2"))
+        status = f"PAID sem1={sem1}, sem2={sem2}"
+
+    await message.answer(f"Status for {student_id}: {status}")
+
 
 @dp.message(F.photo)
 async def admin_review_receipt(message: types.Message):
