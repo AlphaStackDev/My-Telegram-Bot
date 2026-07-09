@@ -101,5 +101,3 @@ async def main() -> None:
 if __name__ == "__main__":
     asyncio.run(main())
 
-conn = await asyncpg.connect(**DB_CONFIG)
-print(f"Connected to database: {conn.get_server_version()}")
