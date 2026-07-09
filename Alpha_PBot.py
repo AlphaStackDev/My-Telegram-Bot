@@ -32,10 +32,12 @@ DB_CONFIG = {
 }
 
 # ALPHA_TOKEN here...
-load_dotenv() # This reads the local .env file
+# Force load environment variables (useful for Render/docker where envs may differ)
+load_dotenv(override=True)
 ALPHA_TOKEN = os.environ.get('ALPHA_BOT_TOKEN')
 if not ALPHA_TOKEN:
-    raise RuntimeError("Missing ALPHA_BOT_TOKEN")
+    # Avoid printing all environment variables for security.
+    raise RuntimeError("Missing ALPHA_BOT_TOKEN. Set it in your environment or .env file.")
 
 # Telegram user id (admin)
 ADMIN_TELEGRAM_ID = 8271633745
