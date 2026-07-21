@@ -41,16 +41,29 @@ FILE_MAP = {
 
 
 async def upsert_courses(conn: asyncpg.Connection) -> None:
-    query = """
-    INSERT INTO courses (course_title, course_code)
-    VALUES ($1, $2)
-    ON CONFLICT (course_code) DO UPDATE
-    SET course_title = EXCLUDED.course_title;
-    """
-
+    # Alternative upsert logic for environments where ON CONFLICT can't be used.
+    # Check-then-insert/update based on course_code.
     for title, code in NEW_COURSES:
-        await conn.execute(query, title, code)
-        print(f"Upserted course: {code} - {title}")
+        existing = await conn.fetchval(
+            "SELECT id FROM courses WHERE course_code = $1",
+            code,
+        )
+
+        if existing:
+            await conn.execute(
+                "UPDATE courses SET course_title = $1 WHERE course_code = $2",
+                title,
+                code,
+            )
+            print(f"Updated: {code} - {title}")
+        else:
+            await conn.execute(
+                "INSERT INTO courses (course_title, course_code) VALUES ($1, $2)",
+                title,
+                code,
+            )
+            print(f"Inserted: {code} - {title}")
+
 
 
 async def link_question_papers(conn: asyncpg.Connection) -> None:

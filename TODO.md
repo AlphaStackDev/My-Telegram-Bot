@@ -1,10 +1,26 @@
-# TODO
+# ✅ All Done — Render Deployment Fixes
 
-- [x] Read current `main.py`, `database.py`, and `Alpha_PBot.py` to understand existing startup + webhook flow.
-- [x] Update `main.py` to run `init_db()` and `setup_database()` exactly once at app startup (Gunicorn worker boot) and remove `before_request` + per-request event loop creation.
+## ✅ Completed Changes
 
-- [x] Verify `/webhook_alpha` route still exists and feeds updates to `aiogram` dispatcher.
+| File | Change |
+|------|--------|
+| **Procfile** (new) | Tells Render to start with `gunicorn main:app` |
+| **requirements.txt** | Rewritten as clean UTF-8, fixed `pyppdf` typo → `pypdf` |
+| **runtime.txt** | Updated to `python-3.14.0` to match Render's env |
+| **Admin_Bot.py** | Fixed `bot.send_message` → `admin_bot.send_message` bug; added `import logging`; added `on_startup()` webhook function |
+| **main.py** | Completely rewritten: integrated Admin Bot webhook, Paystack webhook, Moniepoint webhook; removed `app.run()` (gunicorn handles startup); proper event loop management |
 
-- [ ] Run a quick local sanity check: `python main.py` and curl POST to `/webhook_alpha` with a minimal JSON payload (or run unit tests).
+## ▶️ Steps You Need to Take on Render
 
+1. **Commit & push** these changes to GitHub
+2. **On Render Dashboard → Your Web Service → Settings:**
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** (should auto-use Procfile) → `gunicorn main:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120`
+3. **Verify Environment Variables are set:**
+   - `ALPHA_BOT_TOKEN`
+   - `ADMIN_BOT_TOKEN`
+   - `DATABASE_URL` (Render PostgreSQL)
+   - `RENDER_URL` → `https://your-app-name.onrender.com`
+   - `PAYSTACK_SECRET_KEY` (if using Paystack)
+4. **Deploy!**
 

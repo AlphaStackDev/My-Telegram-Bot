@@ -20,17 +20,6 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from database import db_execute, db_fetch_all, db_fetch_one
 
-# =====================
-# CONFIG (EDIT THESE)
-# =====================
-DB_CONFIG = {
-    "host": "localhost",
-    "user": "postgres",        # Change this from "root" to "postgres"
-    "password": "Alpha.com002",
-    "database": "unical_bot",
-    "autocommit": True,
-}
-
 # ALPHA_TOKEN here...
 # Force load environment variables (useful for Render/docker where envs may differ)
 load_dotenv(override=True)
@@ -66,8 +55,10 @@ dp = Dispatcher()
 
 # Called by webhook runner on startup (if wired in main.py)
 async def on_startup():
-    webhook_url = "https://your-render-app-name.onrender.com/webhook_alpha"
+    base_url = os.environ.get("RENDER_URL", "https://your-render-app-name.onrender.com")
+    webhook_url = f"{base_url.rstrip('/')}/webhook_alpha"
     await bot.set_webhook(webhook_url)
+    logging.info(f"Alpha bot webhook set to: {webhook_url}")
 
 
 # =====================

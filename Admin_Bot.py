@@ -5,6 +5,7 @@ from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command
 from aiogram.types import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 
+import logging
 from database import db_execute, db_fetch_one
 from dotenv import load_dotenv
 
@@ -79,7 +80,7 @@ async def approve_student(message: types.Message):
 
     await message.answer(f"✅ Approved {payment_type} for {student_id}.")
     try:
-        await bot.send_message(student_id, f"🎉 Payment approved! You unlocked: {payment_type}. You can now download files.")
+        await admin_bot.send_message(student_id, f"🎉 Payment approved! You unlocked: {payment_type}. You can now download files.")
     except Exception:
         pass
 
@@ -157,6 +158,14 @@ async def decline_callback(call: types.CallbackQuery):
     student_id = int(call.data.split(":")[1])
     await call.message.edit_text(f"❌ Declined: {student_id}")
     await call.answer("Declined!")
+
+async def on_startup():
+    """Called by main.py to set Admin bot webhook."""
+    base_url = os.environ.get("RENDER_URL", "https://your-render-app-name.onrender.com")
+    webhook_url = f"{base_url.rstrip('/')}/webhook_admin"
+    await admin_bot.set_webhook(webhook_url)
+    logging.info(f"Admin bot webhook set to: {webhook_url}")
+
 
 async def run_admin_bot() -> None:
     await set_commands(admin_bot)
