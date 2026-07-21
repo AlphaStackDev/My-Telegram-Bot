@@ -1,0 +1,33 @@
+[33mcommit 047732312cdcb412e12fdca5df6b976baeea92bf[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mblackboxai/admin-approve-shared-db[m[33m, [m[1;31morigin/blackboxai/admin-approve-shared-db[m[33m)[m
+Author: AlphaStackDev <sampsonelemi5@gmail.com>
+Date:   Tue Jul 21 08:36:42 2026 +0100
+
+    | File | Change |
+    |------|--------|
+    | **Procfile** (new) | Tells Render to start with `gunicorn main:app` |
+    | **requirements.txt** | Rewritten as clean UTF-8, fixed `pyppdf` typo → `pypdf` |
+    | **runtime.txt** | Updated to `python-3.14.0` to match Render's env |
+    | **Admin_Bot.py** | Fixed `bot.send_message` → `admin_bot.send_message` bug; added `import logging`; added `on_startup()` webhook function |
+    | **main.py** | Completely rewritten: integrated Admin Bot webhook, Paystack webhook, Moniepoint webhook; removed `app.run()` (gunicorn handles startup); proper event loop management |
+    
+    1. **Commit & push** these changes to GitHub
+    2. **On Render Dashboard → Your Web Service → Settings:**
+       - **Build Command:** `pip install -r requirements.txt`
+       - **Start Command:** (should auto-use Procfile) → `gunicorn main:app --bind 0.0.0.0:$PORT --workers 1 --threads 2 --timeout 120`
+    3. **Verify Environment Variables are set:**
+       - `ALPHA_BOT_TOKEN`
+       - `ADMIN_BOT_TOKEN`
+       - `DATABASE_URL` (Render PostgreSQL)
+       - `RENDER_URL` → `https://your-app-name.onrender.com`
+       - `PAYSTACK_SECRET_KEY` (if using Paystack)
+    4. **Deploy!**
+
+ Admin_Bot.py     |  11 [32m++++[m[31m-[m
+ Alpha_PBot.py    |  15 [32m++[m[31m-----[m
+ Procfile         |   2 [32m+[m
+ TODO.md          |  26 [32m++++++++[m[31m---[m
+ bulk_upload.py   |  31 [32m+++++++++[m[31m----[m
+ main.py          | 135 [32m++++++++++++++++++++++++++++++++++++++++++++++[m[31m---------[m
+ requirements.txt | Bin [31m360[m -> [32m130[m bytes
+ runtime.txt      |   3 [32m+[m[31m-[m
+ 8 files changed, 175 insertions(+), 48 deletions(-)
